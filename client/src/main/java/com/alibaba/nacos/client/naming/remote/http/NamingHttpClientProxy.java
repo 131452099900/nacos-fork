@@ -130,11 +130,14 @@ public class NamingHttpClientProxy extends AbstractNamingClientProxy {
     public void registerService(String serviceName, String groupName, Instance instance) throws NacosException {
         NAMING_LOGGER.info("[REGISTER-SERVICE] {} registering service {} with instance: {}", namespaceId, serviceName,
                 instance);
+
         String groupedServiceName = NamingUtils.getGroupedName(serviceName, groupName);
+        // http现在已经不支持临时节点了，直接把原来的http心跳给干掉了
         if (instance.isEphemeral()) {
             throw new UnsupportedOperationException(
                     "Do not support register ephemeral instances by HTTP, please use gRPC replaced.");
         }
+        // 直接发送请求
         final Map<String, String> params = new HashMap<>(32);
         params.put(CommonParams.NAMESPACE_ID, namespaceId);
         params.put(CommonParams.SERVICE_NAME, groupedServiceName);
@@ -356,9 +359,11 @@ public class NamingHttpClientProxy extends AbstractNamingClientProxy {
         }
         
         NacosException exception = new NacosException();
-        
+
+        // domain
         if (serverListManager.isDomain()) {
             String nacosDomain = serverListManager.getNacosDomain();
+            // 经过最大重试
             for (int i = 0; i < maxRetry; i++) {
                 try {
                     return callServer(api, params, body, nacosDomain, method);

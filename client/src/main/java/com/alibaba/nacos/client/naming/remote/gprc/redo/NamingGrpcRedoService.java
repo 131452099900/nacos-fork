@@ -114,6 +114,7 @@ public class NamingGrpcRedoService implements ConnectionEventListener {
         String key = NamingUtils.getGroupedName(serviceName, groupName);
         InstanceRedoData redoData = InstanceRedoData.build(serviceName, groupName, instance);
         synchronized (registeredInstances) {
+            // 已注册实例Map
             registeredInstances.put(key, redoData);
         }
     }
@@ -143,6 +144,7 @@ public class NamingGrpcRedoService implements ConnectionEventListener {
         String key = NamingUtils.getGroupedName(serviceName, groupName);
         synchronized (registeredInstances) {
             InstanceRedoData redoData = registeredInstances.get(key);
+            // 完成注册标记
             if (null != redoData) {
                 redoData.registered();
             }

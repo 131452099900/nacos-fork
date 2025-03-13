@@ -41,8 +41,10 @@ public class NamingEventPublisher extends Thread implements ShardedEventPublishe
     private static final String THREAD_NAME = "naming.publisher-";
     
     private static final int DEFAULT_WAIT_TIME = 60;
-    
-    private final Map<Class<? extends Event>, Set<Subscriber<? extends Event>>> subscribes = new ConcurrentHashMap<>();
+
+    // 也是一个Map 事件和他的订阅者
+    private final Map<Class<? extends Event>, Set<Subscriber<? extends Event>>>
+            subscribes = new ConcurrentHashMap<>();
     
     private volatile boolean initialized = false;
     
@@ -74,7 +76,13 @@ public class NamingEventPublisher extends Thread implements ShardedEventPublishe
     public void addSubscriber(Subscriber subscriber) {
         addSubscriber(subscriber, subscriber.subscribeType());
     }
-    
+
+
+    /**
+     * 添加订阅者
+      * @param subscriber    {@link Subscriber}
+     * @param subscribeType subscribe event type, such as slow event or general event.
+     */
     @Override
     public void addSubscriber(Subscriber subscriber, Class<? extends Event> subscribeType) {
         subscribes.computeIfAbsent(subscribeType, inputType -> new ConcurrentHashSet<>()).add(subscriber);
@@ -96,6 +104,7 @@ public class NamingEventPublisher extends Thread implements ShardedEventPublishe
     @Override
     public boolean publish(Event event) {
         checkIsStart();
+        // 阻塞队列
         boolean success = this.queue.offer(event);
         if (!success) {
             Loggers.EVT_LOG.warn("Unable to plug in due to interruption, synchronize sending time, event : {}", event);
@@ -112,9 +121,11 @@ public class NamingEventPublisher extends Thread implements ShardedEventPublishe
         final Runnable job = () -> subscriber.onEvent(event);
         final Executor executor = subscriber.executor();
         if (executor != null) {
+            // 执行 如果给其分配了Excutor可以使用Excutor执行
             executor.execute(job);
         } else {
             try {
+                // 在本线程执行
                 job.run();
             } catch (Throwable e) {
                 Loggers.EVT_LOG.error("Event callback exception: ", e);
@@ -172,6 +183,7 @@ public class NamingEventPublisher extends Thread implements ShardedEventPublishe
             }
             return;
         }
+        // 广播
         for (Subscriber subscriber : subscribers) {
             notifySubscriber(subscriber, event);
         }

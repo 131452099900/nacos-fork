@@ -45,25 +45,31 @@ public class DefaultPublisher extends Thread implements EventPublisher {
     private volatile boolean initialized = false;
     
     private volatile boolean shutdown = false;
-    
+
+    // 事件类型
     private Class<? extends Event> eventType;
-    
+
+    // 订阅者
     protected final ConcurrentHashSet<Subscriber> subscribers = new ConcurrentHashSet<>();
-    
+
     private int queueMaxSize = -1;
-    
+
+    // 阻塞队列
     private BlockingQueue<Event> queue;
     
     protected volatile Long lastEventSequence = -1L;
-    
+
+    // CAS 最后一个事件序列
     private static final AtomicReferenceFieldUpdater<DefaultPublisher, Long> UPDATER = AtomicReferenceFieldUpdater
             .newUpdater(DefaultPublisher.class, Long.class, "lastEventSequence");
-    
+
     @Override
     public void init(Class<? extends Event> type, int bufferSize) {
+        // 实现了Thread的init作为守护线程
         setDaemon(true);
         setName("nacos.publisher-" + type.getName());
         this.eventType = type;
+        // 队列的size
         this.queueMaxSize = bufferSize;
         if (this.queueMaxSize == -1) {
             this.queueMaxSize = ringBufferSize;
@@ -92,24 +98,28 @@ public class DefaultPublisher extends Thread implements EventPublisher {
     
     @Override
     public void run() {
+        // 一直执行这个
         openEventHandler();
     }
     
     void openEventHandler() {
         try {
             
-            // This variable is defined to resolve the problem which message overstock in the queue.
+            // 消息积压问题 因为开始阻塞的话可能会导致大量的信息进入，如果真的很多就开始
             int waitTimes = 60;
             // To ensure that messages are not lost, enable EventHandler when
             // waiting for the first Subscriber to register
+            // 为了确保消息不丢失，需要等待第一个事件来注册
             while (!shutdown && !hasSubscriber() && waitTimes > 0) {
                 ThreadUtils.sleep(1000L);
                 waitTimes--;
             }
 
             while (!shutdown) {
+                // 阻塞获取事件
                 final Event event = queue.take();
                 receiveEvent(event);
+                // 消费完事件更新序列号
                 UPDATER.compareAndSet(this, lastEventSequence, Math.max(lastEventSequence, event.sequence()));
             }
         } catch (Throwable ex) {
@@ -134,7 +144,10 @@ public class DefaultPublisher extends Thread implements EventPublisher {
     @Override
     public boolean publish(Event event) {
         checkIsStart();
+        // 阻塞放进去
         boolean success = this.queue.offer(event);
+
+        // 如果没设置进去，就当场执行
         if (!success) {
             LOGGER.warn("Unable to plug in due to interruption, synchronize sending time, event : {}", event);
             receiveEvent(event);
@@ -165,6 +178,7 @@ public class DefaultPublisher extends Thread implements EventPublisher {
      * @param event {@link Event}.
      */
     void receiveEvent(Event event) {
+        // 事件序列号，相当于ID
         final long currentEventSequence = event.sequence();
         
         if (!hasSubscriber()) {
@@ -174,11 +188,12 @@ public class DefaultPublisher extends Thread implements EventPublisher {
         
         // Notification single event listener
         for (Subscriber subscriber : subscribers) {
+            // 如果不匹配，返回
             if (!subscriber.scopeMatches(event)) {
                 continue;
             }
             
-            // Whether to ignore expiration events
+            // 是否忽略过期事件，根据lastEventSequence和currentEventSequence进行管控 这里感觉根据策略来写会更好
             if (subscriber.ignoreExpireEvent() && lastEventSequence > currentEventSequence) {
                 LOGGER.debug("[NotifyCenter] the {} is unacceptable to this subscriber, because had expire",
                         event.getClass());

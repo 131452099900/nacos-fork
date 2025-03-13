@@ -114,9 +114,11 @@ public class NotifyCenter {
     }
     
     public static EventPublisher getPublisher(Class<? extends Event> topic) {
+        // 共享模式
         if (ClassUtils.isAssignableFrom(SlowEvent.class, topic)) {
             return INSTANCE.sharePublisher;
         }
+        // 非共享模式 需要在map中获取
         return INSTANCE.publisherMap.get(topic.getCanonicalName());
     }
     
@@ -171,19 +173,23 @@ public class NotifyCenter {
     public static void registerSubscriber(final Subscriber consumer, final EventPublisherFactory factory) {
         // If you want to listen to multiple events, you do it separately,
         // based on subclass's subscribeTypes method return list, it can register to publisher.
+        // 1监听者对多事件模式
         if (consumer instanceof SmartSubscriber) {
             for (Class<? extends Event> subscribeType : ((SmartSubscriber) consumer).subscribeTypes()) {
                 // For case, producer: defaultSharePublisher -> consumer: smartSubscriber.
+                // 慢事件，使用defaultSharePublisher
                 if (ClassUtils.isAssignableFrom(SlowEvent.class, subscribeType)) {
                     INSTANCE.sharePublisher.addSubscriber(consumer, subscribeType);
                 } else {
                     // For case, producer: defaultPublisher -> consumer: subscriber.
+                    // 快事件，使用defaultSharePublisher
                     addSubscriber(consumer, subscribeType, factory);
                 }
             }
             return;
         }
-        
+
+        // 1监听者对一事件模式
         final Class<? extends Event> subscribeType = consumer.subscribeType();
         if (ClassUtils.isAssignableFrom(SlowEvent.class, subscribeType)) {
             INSTANCE.sharePublisher.addSubscriber(consumer, subscribeType);

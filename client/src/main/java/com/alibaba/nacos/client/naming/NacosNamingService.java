@@ -153,8 +153,11 @@ public class NacosNamingService implements NamingService {
     
     @Override
     public void registerInstance(String serviceName, String groupName, Instance instance) throws NacosException {
+        // 检查实例是否合法
         NamingUtils.checkInstanceIsLegal(instance);
+        // 分割前缀
         checkAndStripGroupNamePrefix(instance, groupName);
+        // 服务端代理
         clientProxy.registerService(serviceName, groupName, instance);
     }
     
@@ -547,6 +550,7 @@ public class NacosNamingService implements NamingService {
                         "wrong group name prefix of instance service name! it should be: %s, Instance: %s", groupName,
                         instance));
             }
+            // 分割前缀
             instance.setServiceName(NamingUtils.getServiceName(serviceName));
         }
     }

@@ -29,7 +29,8 @@ import java.util.concurrent.atomic.AtomicLong;
 public abstract class Event implements Serializable {
     
     private static final long serialVersionUID = -3731383194964997493L;
-    
+
+    // 就是一个自增的ID
     private static final AtomicLong SEQUENCE = new AtomicLong(0);
     
     private final long sequence = SEQUENCE.getAndIncrement();

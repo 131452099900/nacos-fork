@@ -22,7 +22,7 @@ import java.util.List;
 
 /**
  * Subscribers to multiple events can be listened to.
- *
+ * 可以监听多个事件
  * @author <a href="mailto:liaochuntao@live.com">liaochuntao</a>
  * @author zongtanghu
  */
