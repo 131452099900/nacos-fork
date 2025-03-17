@@ -74,6 +74,7 @@ public class GrpcConnection extends Connection {
             //StreamObserver#onNext() is not thread-safe,synchronized is required to avoid direct memory leak.
             synchronized (streamObserver) {
                 try {
+                    // 把request转成Payload
                     Payload payload = GrpcUtils.convert(request);
                     traceIfNecessary(payload);
                     streamObserver.onNext(payload);

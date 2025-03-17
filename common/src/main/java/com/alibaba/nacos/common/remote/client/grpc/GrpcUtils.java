@@ -93,6 +93,7 @@ public class GrpcUtils {
      * @return payload.
      */
     public static Payload convert(Response response) {
+        // json的byte 那序列化不一样很垃圾码
         byte[] jsonBytes = JacksonUtils.toJsonBytes(response);
         
         Metadata.Builder metaBuilder = Metadata.newBuilder().setType(response.getClass().getSimpleName());
@@ -119,6 +120,7 @@ public class GrpcUtils {
         if (classType != null) {
             ByteString byteString = payload.getBody().getValue();
             ByteBuffer byteBuffer = byteString.asReadOnlyByteBuffer();
+            // 把二进制转化为字符串json
             Object obj = JacksonUtils.toObj(new ByteBufferBackedInputStream(byteBuffer), classType);
             if (obj instanceof Request) {
                 ((Request) obj).putAllHeader(payload.getMetadata().getHeadersMap());

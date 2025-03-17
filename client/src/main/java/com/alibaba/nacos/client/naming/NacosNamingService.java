@@ -157,7 +157,7 @@ public class NacosNamingService implements NamingService {
         NamingUtils.checkInstanceIsLegal(instance);
         // 分割前缀
         checkAndStripGroupNamePrefix(instance, groupName);
-        // 服务端代理
+        // 代理去请求
         clientProxy.registerService(serviceName, groupName, instance);
     }
     

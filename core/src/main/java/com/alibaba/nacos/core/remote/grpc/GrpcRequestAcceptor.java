@@ -43,7 +43,7 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * rpc request acceptor of grpc.
- *
+ * 实现类
  * @author liuzunfei
  * @version $Id: GrpcCommonRequestAcceptor.java, v 0.1 2020年09月01日 10:52 AM liuzunfei Exp $
  */
@@ -71,7 +71,12 @@ public class GrpcRequestAcceptor extends RequestGrpc.RequestImplBase {
         }
         
     }
-    
+
+    /**
+     *
+     * @param grpcRequest 接收一个请求
+     * @param responseObserver responseObserver监听者
+     */
     @Override
     public void request(Payload grpcRequest, StreamObserver<Payload> responseObserver) {
         
@@ -79,21 +84,24 @@ public class GrpcRequestAcceptor extends RequestGrpc.RequestImplBase {
         String type = grpcRequest.getMetadata().getType();
         long startTime = System.nanoTime();
         
-        //server is on starting.
+        //
         if (!ApplicationUtils.isStarted()) {
             Payload payloadResponse = GrpcUtils.convert(
                     ErrorResponse.build(NacosException.INVALID_SERVER_STATUS, "Server is starting,please try later."));
             traceIfNecessary(payloadResponse, false);
+
+            // 接收到信息 每次客户端写入一个 Point 到消息流时，拿到特性和其它信息。
             responseObserver.onNext(payloadResponse);
-            
+            // 结束服务器端的调用
             responseObserver.onCompleted();
             MetricsMonitor.recordGrpcRequestEvent(type, false,
                     NacosException.INVALID_SERVER_STATUS, null, null, System.nanoTime() - startTime);
             return;
         }
 
-        // server check.
+        // 服务端检查 直接返回本连接ID就可以
         if (ServerCheckRequest.class.getSimpleName().equals(type)) {
+            // 对于服务来检查 直接返回本连接ID就可以
             Payload serverCheckResponseP = GrpcUtils.convert(new ServerCheckResponse(GrpcServerConstants.CONTEXT_KEY_CONN_ID.get(), true));
             traceIfNecessary(serverCheckResponseP, false);
             responseObserver.onNext(serverCheckResponseP);
@@ -102,11 +110,13 @@ public class GrpcRequestAcceptor extends RequestGrpc.RequestImplBase {
                     0, null, null, System.nanoTime() - startTime);
             return;
         }
-        
+
+        // 从type中获取到RequestHandler
         RequestHandler requestHandler = requestHandlerRegistry.getByRequestType(type);
-        //no handler found.
+        // 如果没有找到对应的RequestHandler
         if (requestHandler == null) {
             Loggers.REMOTE_DIGEST.warn(String.format("[%s] No handler for request type : %s :", "grpc", type));
+            // 返回一个错误响应
             Payload payloadResponse = GrpcUtils
                     .convert(ErrorResponse.build(NacosException.NO_HANDLER, "RequestHandler Not Found"));
             traceIfNecessary(payloadResponse, false);
@@ -117,12 +127,14 @@ public class GrpcRequestAcceptor extends RequestGrpc.RequestImplBase {
             return;
         }
         
-        //check connection status.
+        // 检查连接状态
         String connectionId = GrpcServerConstants.CONTEXT_KEY_CONN_ID.get();
+        // 连接管理器中查看是否存在该连接，
         boolean requestValid = connectionManager.checkValid(connectionId);
         if (!requestValid) {
             Loggers.REMOTE_DIGEST
                     .warn("[{}] Invalid connection Id ,connection [{}] is un registered ,", "grpc", connectionId);
+            // 返回Connection is unregistered.
             Payload payloadResponse = GrpcUtils
                     .convert(ErrorResponse.build(NacosException.UN_REGISTER, "Connection is unregistered."));
             traceIfNecessary(payloadResponse, false);
@@ -135,6 +147,7 @@ public class GrpcRequestAcceptor extends RequestGrpc.RequestImplBase {
         
         Object parseObj = null;
         try {
+            // 反序列化处理
             parseObj = GrpcUtils.parse(grpcRequest);
         } catch (Exception e) {
             Loggers.REMOTE_DIGEST
@@ -147,9 +160,11 @@ public class GrpcRequestAcceptor extends RequestGrpc.RequestImplBase {
                     NacosException.BAD_GATEWAY, e.getClass().getSimpleName(), null, System.nanoTime() - startTime);
             return;
         }
-        
+
+        // 如果为null，说明反序列化失败
         if (parseObj == null) {
             Loggers.REMOTE_DIGEST.warn("[{}] Invalid request receive  ,parse request is null", connectionId);
+            // 返回request请求失败
             Payload payloadResponse = GrpcUtils
                     .convert(ErrorResponse.build(NacosException.BAD_GATEWAY, "Invalid request"));
             traceIfNecessary(payloadResponse, false);
@@ -165,6 +180,7 @@ public class GrpcRequestAcceptor extends RequestGrpc.RequestImplBase {
             Loggers.REMOTE_DIGEST
                     .warn("[{}] Invalid request receive  ,parsed payload is not a request,parseObj={}", connectionId,
                             parseObj);
+            // 进一步校验确认request
             Payload payloadResponse = GrpcUtils
                     .convert(ErrorResponse.build(NacosException.BAD_GATEWAY, "Invalid request"));
             traceIfNecessary(payloadResponse, false);
@@ -175,17 +191,25 @@ public class GrpcRequestAcceptor extends RequestGrpc.RequestImplBase {
                     NacosException.BAD_GATEWAY, null, null, System.nanoTime() - startTime);
             return;
         }
-        
+
+        // 解析成headers 和 requestId
         Request request = (Request) parseObj;
         try {
+            // 从连接管理器获取到Connection
             Connection connection = connectionManager.getConnection(GrpcServerConstants.CONTEXT_KEY_CONN_ID.get());
+            // ip connectionId version 标签
             RequestMeta requestMeta = new RequestMeta();
             requestMeta.setClientIp(connection.getMetaInfo().getClientIp());
             requestMeta.setConnectionId(GrpcServerConstants.CONTEXT_KEY_CONN_ID.get());
             requestMeta.setClientVersion(connection.getMetaInfo().getVersion());
+            // 类似于对象头?
             requestMeta.setLabels(connection.getMetaInfo().getLabels());
             requestMeta.setAbilityTable(connection.getAbilityTable());
+
+            // 刷新连接活跃时间
             connectionManager.refreshActiveTime(requestMeta.getConnectionId());
+
+            // 由对应的handler处理
             Response response = requestHandler.handleRequest(request, requestMeta);
             Payload payloadResponse = GrpcUtils.convert(response);
             traceIfNecessary(payloadResponse, false);

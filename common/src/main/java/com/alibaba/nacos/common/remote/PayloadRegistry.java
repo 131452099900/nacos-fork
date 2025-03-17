@@ -45,6 +45,7 @@ public class PayloadRegistry {
         if (initialized) {
             return;
         }
+        // SPI
         ServiceLoader<Payload> payloads = ServiceLoader.load(Payload.class);
         for (Payload payload : payloads) {
             register(payload.getClass().getSimpleName(), payload.getClass());

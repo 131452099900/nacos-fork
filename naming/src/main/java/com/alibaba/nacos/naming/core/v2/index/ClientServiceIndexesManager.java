@@ -39,7 +39,7 @@ import java.util.concurrent.ConcurrentMap;
 
 /**
  * Client and service index manager.
- *
+ *   管理client注册事件的监听器
  * @author xiweng.yy
  */
 @Component
@@ -117,18 +117,23 @@ public class ClientServiceIndexesManager extends SmartSubscriber {
         Service service = event.getService();
         String clientId = event.getClientId();
         if (event instanceof ClientOperationEvent.ClientRegisterServiceEvent) {
+            // 注册事件
             addPublisherIndexes(service, clientId);
         } else if (event instanceof ClientOperationEvent.ClientDeregisterServiceEvent) {
+            // 删除
             removePublisherIndexes(service, clientId);
         } else if (event instanceof ClientOperationEvent.ClientSubscribeServiceEvent) {
+            // 自定义顶订阅事件？
             addSubscriberIndexes(service, clientId);
         } else if (event instanceof ClientOperationEvent.ClientUnsubscribeServiceEvent) {
+            // 关闭订阅事件
             removeSubscriberIndexes(service, clientId);
         }
     }
     
     private void addPublisherIndexes(Service service, String clientId) {
         publisherIndexes.computeIfAbsent(service, key -> new ConcurrentHashSet<>()).add(clientId);
+        // 又广播service的changer事件
         NotifyCenter.publishEvent(new ServiceEvent.ServiceChangedEvent(service, true));
     }
     

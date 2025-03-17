@@ -16,9 +16,6 @@
 
 package com.alibaba.nacos.consistency;
 
-import com.alibaba.nacos.consistency.entity.ReadRequest;
-import com.alibaba.nacos.consistency.entity.Response;
-import com.alibaba.nacos.consistency.entity.WriteRequest;
 
 import java.util.Collection;
 import java.util.Set;

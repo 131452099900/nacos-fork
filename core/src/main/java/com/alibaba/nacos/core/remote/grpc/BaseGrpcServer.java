@@ -74,20 +74,30 @@ public abstract class BaseGrpcServer extends BaseRpcServer {
     public ConnectionType getConnectionType() {
         return ConnectionType.GRPC;
     }
-    
+
+    /**
+     * 开启服务
+     *
+     * @throws Exception exception.
+     */
     @Override
     public void startServer() throws Exception {
+        // grpc的注册表
         final MutableHandlerRegistry handlerRegistry = new MutableHandlerRegistry();
+
+        // 新增拦截器
         addServices(handlerRegistry, getSeverInterceptors().toArray(new ServerInterceptor[0]));
         NettyServerBuilder builder = NettyServerBuilder.forPort(getServicePort()).executor(getRpcExecutor());
-        
+
+        // 基于netty的协议
         Optional<InternalProtocolNegotiator.ProtocolNegotiator> negotiator = newProtocolNegotiator();
         if (negotiator.isPresent()) {
             InternalProtocolNegotiator.ProtocolNegotiator actual = negotiator.get();
             Loggers.REMOTE.info("Add protocol negotiator {}", actual.getClass().getCanonicalName());
             builder.protocolNegotiator(actual);
         }
-        
+
+        // 新增过滤器
         for (ServerTransportFilter each : getServerTransportFilters()) {
             builder.addTransportFilter(each);
         }
@@ -154,6 +164,7 @@ public abstract class BaseGrpcServer extends BaseRpcServer {
     }
     
     protected List<ServerInterceptor> getSeverInterceptors() {
+        // 拦截器
         List<ServerInterceptor> result = new LinkedList<>();
         result.add(new GrpcConnectionInterceptor());
         return result;

@@ -626,7 +626,7 @@ public abstract class RpcClient implements Closeable {
     
     /**
      * send request.
-     *
+     * 使用grpc发送请求
      * @param request request.
      * @return response from server.
      */
@@ -635,16 +635,23 @@ public abstract class RpcClient implements Closeable {
         Response response;
         Throwable exceptionThrow = null;
         long start = System.currentTimeMillis();
+
+        // 循环重试
         while (retryTimes <= rpcClientConfig.retryTimes() && (timeoutMills <= 0
                 || System.currentTimeMillis() < timeoutMills + start)) {
             boolean waitReconnect = false;
             try {
+                // 连接不存在或者不在允许抛出异常
                 if (this.currentConnection == null || !isRunning()) {
                     waitReconnect = true;
                     throw new NacosException(NacosException.CLIENT_DISCONNECT,
                             "Client not connected, current status:" + rpcClientStatus.get());
                 }
+
+                // 发起请求 这里调用的是common包里面的一个GrpcConnection
                 response = this.currentConnection.request(request, timeoutMills);
+
+                // 结果不是正常的
                 if (response == null) {
                     throw new NacosException(SERVER_ERROR, "Unknown Exception.");
                 }
@@ -687,11 +694,13 @@ public abstract class RpcClient implements Closeable {
             retryTimes++;
             
         }
-        
+
+        // 超出重试次数 RUNNING -> UNHEALTHY
         if (rpcClientStatus.compareAndSet(RpcClientStatus.RUNNING, RpcClientStatus.UNHEALTHY)) {
             switchServerAsyncOnRequestFail();
         }
-        
+
+        // 不在重试循环里面抛出来，而是记录起来等完全失败了再抛
         if (exceptionThrow != null) {
             throw (exceptionThrow instanceof NacosException) ? (NacosException) exceptionThrow
                     : new NacosException(SERVER_ERROR, exceptionThrow);

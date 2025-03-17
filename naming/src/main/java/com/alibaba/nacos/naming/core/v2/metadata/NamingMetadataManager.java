@@ -223,11 +223,15 @@ public class NamingMetadataManager extends SmartSubscriber {
     
     @Override
     public void onEvent(Event event) {
+        // 一共三种元数据事件，分别是Instance事件 Service事件
         if (event instanceof MetadataEvent.InstanceMetadataEvent) {
+            // 充值instance元数据
             handleInstanceMetadataEvent((MetadataEvent.InstanceMetadataEvent) event);
         } else if (event instanceof MetadataEvent.ServiceMetadataEvent) {
+            // 重置 service元数据
             handleServiceMetadataEvent((MetadataEvent.ServiceMetadataEvent) event);
         } else {
+            // 把连接关闭的放入过期区
             handleClientDisconnectEvent((ClientEvent.ClientDisconnectEvent) event);
         }
     }
@@ -236,6 +240,7 @@ public class NamingMetadataManager extends SmartSubscriber {
         for (Service each : event.getClient().getAllPublishedService()) {
             String metadataId = event.getClient().getInstancePublishInfo(each).getMetadataId();
             if (containInstanceMetadata(each, metadataId)) {
+                // 放入过期区
                 updateExpiredInfo(true, ExpiredMetadataInfo.newExpiredInstanceMetadata(each, metadataId));
             }
         }
@@ -251,7 +256,9 @@ public class NamingMetadataManager extends SmartSubscriber {
     private void handleInstanceMetadataEvent(MetadataEvent.InstanceMetadataEvent event) {
         Service service = event.getService();
         String metadataId = event.getMetadataId();
+        // 重置instance元数据
         if (containInstanceMetadata(service, metadataId)) {
+            // 这个类是维护service和instance的元数据信息的，就是更新了一下过期数据
             updateExpiredInfo(event.isExpired(),
                     ExpiredMetadataInfo.newExpiredInstanceMetadata(event.getService(), event.getMetadataId()));
         }

@@ -54,15 +54,18 @@ public class ServiceManager {
     
     /**
      * Get singleton service. Put to manager if no singleton.
-     *
+     * 返回一个单例service，并且放入manager中
      * @param service new service
      * @return if service is exist, return exist service, otherwise return new service
      */
     public Service getSingleton(Service service) {
         Service result = singletonRepository.computeIfAbsent(service, key -> {
+            // 广播一个service元数据事件
+            // com.alibaba.nacos.naming.core.v2.metadata.NamingMetadataManager会监听到
             NotifyCenter.publishEvent(new MetadataEvent.ServiceMetadataEvent(service, false));
             return service;
         });
+        // 放入serviceManager
         namespaceSingletonMaps.computeIfAbsent(result.getNamespace(), namespace -> new ConcurrentHashSet<>()).add(result);
         return result;
     }
