@@ -100,7 +100,9 @@ public class PushDelayTaskExecuteEngine extends NacosDelayTaskExecuteEngine {
         @Override
         public boolean process(NacosTask task) {
             PushDelayTask pushDelayTask = (PushDelayTask) task;
+            // 服务
             Service service = pushDelayTask.getService();
+            // 执行
             NamingExecuteTaskDispatcher.getInstance()
                     .dispatchAndExecuteTask(service, new PushExecuteTask(service, executeEngine, pushDelayTask));
             return true;

@@ -73,13 +73,13 @@ public class GrpcRequestAcceptor extends RequestGrpc.RequestImplBase {
     }
 
     /**
-     *
+     * Payload会
      * @param grpcRequest 接收一个请求
      * @param responseObserver responseObserver监听者
      */
     @Override
     public void request(Payload grpcRequest, StreamObserver<Payload> responseObserver) {
-        
+        // 判断connection的IP是否合法
         traceIfNecessary(grpcRequest, true);
         String type = grpcRequest.getMetadata().getType();
         long startTime = System.nanoTime();
@@ -147,7 +147,7 @@ public class GrpcRequestAcceptor extends RequestGrpc.RequestImplBase {
         
         Object parseObj = null;
         try {
-            // 反序列化处理
+            // 反序列化处理 payLoad -> GrpcRequest
             parseObj = GrpcUtils.parse(grpcRequest);
         } catch (Exception e) {
             Loggers.REMOTE_DIGEST

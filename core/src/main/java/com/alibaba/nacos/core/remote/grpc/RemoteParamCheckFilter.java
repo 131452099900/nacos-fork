@@ -55,6 +55,7 @@ public class RemoteParamCheckFilter extends AbstractRequestFilter {
                     return null;
                 }
             }
+            // 如果有Extractor
             AbstractRpcParamExtractor paramExtractor = ExtractorManager.getRpcExtractor(extractor);
             List<ParamInfo> paramInfoList = paramExtractor.extractParam(request);
             ParamCheckerManager paramCheckerManager = ParamCheckerManager.getInstance();

@@ -132,10 +132,12 @@ public class NacosDelayTaskExecuteEngine extends AbstractNacosTaskExecuteEngine<
     protected void processTasks() {
         Collection<Object> keys = getAllTaskKeys();
         for (Object taskKey : keys) {
+            // 取出任务
             AbstractDelayTask task = removeTask(taskKey);
             if (null == task) {
                 continue;
             }
+            //
             NacosTaskProcessor processor = getProcessor(taskKey);
             try {
                 // ReAdd task if process failed

@@ -38,6 +38,8 @@ public class GrpcConnectionInterceptor implements ServerInterceptor {
     @Override
     public <T, S> ServerCall.Listener<T> interceptCall(ServerCall<T, S> call, Metadata headers,
             ServerCallHandler<T, S> next) {
+        // 这里是从过滤器com.alibaba.nacos.core.remote.grpc.AddressTransportFilter.transportReady中进行设置的
+        // 在过滤器中初始化容器，方便后续获取，比如connectionID，ip，remotePort，localPort
         Context ctx = Context.current().withValue(GrpcServerConstants.CONTEXT_KEY_CONN_ID,
                         call.getAttributes().get(GrpcServerConstants.ATTR_TRANS_KEY_CONN_ID))
                 .withValue(GrpcServerConstants.CONTEXT_KEY_CONN_REMOTE_IP,
