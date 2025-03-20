@@ -27,7 +27,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * The default share event publisher implementation for slow event.
- * 这里其实就是加了一个锁控制，去广利
+ * 这里其实就是加了一个锁控制，而且这里好像没有队列，直接就是用一个set
  * @author zongtanghu
  */
 public class DefaultSharePublisher extends DefaultPublisher implements ShardedEventPublisher {

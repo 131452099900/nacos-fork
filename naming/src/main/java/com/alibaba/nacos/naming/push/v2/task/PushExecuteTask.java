@@ -56,19 +56,23 @@ public class PushExecuteTask extends AbstractExecuteTask {
     @Override
     public void run() {
         try {
+            // 获取要推送的信息
             PushDataWrapper wrapper = generatePushData();
             ClientManager clientManager = delayTaskEngine.getClientManager();
+            // 遍历每个client 这里是客户端，只要做广播通知而已，之前1.0版本其实是udp广播通知
             for (String each : getTargetClientIds()) {
                 Client client = clientManager.getClient(each);
                 if (null == client) {
                     // means this client has disconnect
                     continue;
                 }
+                // 对订阅者进行广播
                 Subscriber subscriber = client.getSubscriber(service);
                 // skip if null
                 if (subscriber == null) {
                     continue;
                 }
+                // 对这个client 的 instance进行推送
                 delayTaskEngine.getPushExecutor().doPushWithCallback(each, subscriber, wrapper,
                         new ServicePushCallback(each, subscriber, wrapper.getOriginalData(), delayTask.isPushToAll()));
             }
@@ -79,12 +83,16 @@ public class PushExecuteTask extends AbstractExecuteTask {
     }
     
     private PushDataWrapper generatePushData() {
+        // 获取到serviceMetadata和serviceInfo
+        // ConcurrentMap<Service, ServiceInfo> serviceDataIndexes
+        // 主要是获取service下所有的clients 一个List<Instance>
         ServiceInfo serviceInfo = delayTaskEngine.getServiceStorage().getPushData(service);
         ServiceMetadata serviceMetadata = delayTaskEngine.getMetadataManager().getServiceMetadata(service).orElse(null);
         return new PushDataWrapper(serviceMetadata, serviceInfo);
     }
     
     private Collection<String> getTargetClientIds() {
+        // 如果是推送给这个service的所有Clients
         return delayTask.isPushToAll() ? delayTaskEngine.getIndexesManager().getAllClientsSubscribeService(service)
                 : delayTask.getTargetClients();
     }

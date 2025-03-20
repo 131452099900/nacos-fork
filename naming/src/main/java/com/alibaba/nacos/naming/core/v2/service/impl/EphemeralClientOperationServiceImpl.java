@@ -54,26 +54,35 @@ public class EphemeralClientOperationServiceImpl implements ClientOperationServi
     
     @Override
     public void registerInstance(Service service, Instance instance, String clientId) throws NacosException {
+        System.out.println("有注册的来辣------------> ");
+        // Service{namespace='quickStart', group='DEFAULT_GROUP', name='nacos.test.3', ephemeral=true, revision=0}
+        // Instance{instanceId='11.11.11.11#8888#TEST1#DEFAULT_GROUP@@nacos.test.3', ip='11.11.11.11', port=8888, weight=1.0, healthy=true, enabled=true, ephemeral=true, clusterName='TEST1', serviceName='DEFAULT_GROUP@@nacos.test.3', metadata={}}
         NamingUtils.checkInstanceIsLegal(instance);
 
         // 获取service单例，广播service元数据事件ServiceMetadataEvent 并且放入manager中
+        // 这里同时也是注册service的关键 和之前的createEmptyService是一样的
         Service singleton = ServiceManager.getInstance().getSingleton(service);
+
         if (!singleton.isEphemeral()) {
             throw new NacosRuntimeException(NacosException.INVALID_PARAM,
                     String.format("Current service %s is persistent service, can't register ephemeral instance.",
                             singleton.getGroupedServiceName()));
         }
-        // 校验id ip管理 维护了一个ip映射client的map ConcurrentMap<String, IpPortBasedClient> clients
+        // 校验id ip管理 维护了一个ip映射client的map ConcurrentMap<String, IpPortBasedClient>
+        // 这里其实就是实际上instance注册，把client获取出来，然后把instanceInfo设置到里面
         Client client = clientManager.getClient(clientId);
         checkClientIsLegal(client, clientId);
 
-        // 获取instance广播info
+        // 客户端的instance转InstancePublishInfo
         InstancePublishInfo instanceInfo = getPublishInfo(instance);
+        // 注册
+        // 建立service-instance关系 注意：这里还会广播ClientChangedEvent事件，后续用于同步nacos集群
         client.addServiceInstance(singleton, instanceInfo);
         client.setLastUpdatedTime(); // 最后更新事件和校验和
         client.recalculateRevision();
 
         // 广播client注册事件 操作事件
+        // 1) 维护client-service关系    2) 完成后广播ServiceChangedEvent，使用rpc通知客户端订阅者
         NotifyCenter.publishEvent(new ClientOperationEvent.ClientRegisterServiceEvent(singleton, clientId));
         // 广播Instance元数据事件 元数据事件 在serviceManager操作
         NotifyCenter

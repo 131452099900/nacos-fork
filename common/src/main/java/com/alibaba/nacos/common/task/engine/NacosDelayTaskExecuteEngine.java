@@ -38,7 +38,8 @@ import java.util.concurrent.locks.ReentrantLock;
 public class NacosDelayTaskExecuteEngine extends AbstractNacosTaskExecuteEngine<AbstractDelayTask> {
     
     private final ScheduledExecutorService processingExecutor;
-    
+
+    // 把延迟任务加到这里
     protected final ConcurrentHashMap<Object, AbstractDelayTask> tasks;
     
     protected final ReentrantLock lock = new ReentrantLock();
@@ -55,6 +56,7 @@ public class NacosDelayTaskExecuteEngine extends AbstractNacosTaskExecuteEngine<
         super(logger);
         tasks = new ConcurrentHashMap<>(initCapacity);
         processingExecutor = ExecutorFactory.newSingleScheduledExecutorService(new NameThreadFactory(name));
+        // 定时执行
         processingExecutor
                 .scheduleWithFixedDelay(new ProcessRunnable(), processInterval, processInterval, TimeUnit.MILLISECONDS);
     }
@@ -132,13 +134,16 @@ public class NacosDelayTaskExecuteEngine extends AbstractNacosTaskExecuteEngine<
     protected void processTasks() {
         Collection<Object> keys = getAllTaskKeys();
         for (Object taskKey : keys) {
+            // 取出任务
             AbstractDelayTask task = removeTask(taskKey);
             if (null == task) {
                 continue;
             }
+
+            // 拿到执行器，比如PushDelayTaskExecuteEngine中的PushDelayTaskProcessor
             NacosTaskProcessor processor = getProcessor(taskKey);
             try {
-                // ReAdd task if process failed
+                // 如果失败了，执行重试，就是继续添加task
                 if (!processor.process(task)) {
                     retryFailedTask(taskKey, task);
                 }

@@ -104,18 +104,20 @@ public class ServiceStorage {
     }
     
     private List<Instance> getAllInstancesFromIndex(Service service) {
-        Set<Instance> result = new HashSet<>();
+        // 获取该service下所有的instance
+         Set<Instance> result = new HashSet<>();
         Set<String> clusters = new HashSet<>();
         for (String each : serviceIndexesManager.getAllClientsRegisteredService(service)) {
             Optional<InstancePublishInfo> instancePublishInfo = getInstanceInfo(each, service);
             if (instancePublishInfo.isPresent()) {
                 InstancePublishInfo publishInfo = instancePublishInfo.get();
-                //If it is a BatchInstancePublishInfo type, it will be processed manually and added to the instance list
+                // 如果是多个
                 if (publishInfo instanceof BatchInstancePublishInfo) {
                     BatchInstancePublishInfo batchInstancePublishInfo = (BatchInstancePublishInfo) publishInfo;
                     List<Instance> batchInstance = parseBatchInstance(service, batchInstancePublishInfo, clusters);
                     result.addAll(batchInstance);
                 } else {
+                    // 如果只有一个
                     Instance instance = parseInstance(service, instancePublishInfo.get());
                     result.add(instance);
                     clusters.add(instance.getClusterName());
@@ -145,6 +147,7 @@ public class ServiceStorage {
     }
     
     private Optional<InstancePublishInfo> getInstanceInfo(String clientId, Service service) {
+        // 找到对应client，client里面有对应的instance
         Client client = clientManager.getClient(clientId);
         if (null == client) {
             return Optional.empty();

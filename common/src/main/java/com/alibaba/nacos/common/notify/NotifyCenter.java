@@ -214,8 +214,10 @@ public class NotifyCenter {
             // MapUtils.computeIfAbsent is a unsafe method.
             MapUtil.computeIfAbsent(INSTANCE.publisherMap, topic, factory, subscribeType, ringBufferSize);
         }
+        // 从topic获取到对应的DefaultPublisher
         EventPublisher publisher = INSTANCE.publisherMap.get(topic);
         if (publisher instanceof ShardedEventPublisher) {
+            // 共享事件监听 使用的是慢事件
             ((ShardedEventPublisher) publisher).addSubscriber(consumer, subscribeType);
         } else {
             publisher.addSubscriber(consumer);

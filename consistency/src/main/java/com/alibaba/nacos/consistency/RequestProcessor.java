@@ -17,6 +17,10 @@
 package com.alibaba.nacos.consistency;
 
 
+import com.alibaba.nacos.consistency.entity.ReadRequest;
+import com.alibaba.nacos.consistency.entity.Response;
+import com.alibaba.nacos.consistency.entity.WriteRequest;
+
 /**
  * Can be discovered through SPI or Spring, This interface is just a function definition interface. Different
  * consistency protocols have their pwd

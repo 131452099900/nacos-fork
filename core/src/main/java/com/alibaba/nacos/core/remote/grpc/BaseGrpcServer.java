@@ -85,7 +85,7 @@ public abstract class BaseGrpcServer extends BaseRpcServer {
         // grpc的注册表
         final MutableHandlerRegistry handlerRegistry = new MutableHandlerRegistry();
 
-        // 新增拦截器
+        // 注册两个处理器 一个单向，一个双向，就是两个handler
         addServices(handlerRegistry, getSeverInterceptors().toArray(new ServerInterceptor[0]));
         NettyServerBuilder builder = NettyServerBuilder.forPort(getServicePort()).executor(getRpcExecutor());
 
@@ -183,27 +183,33 @@ public abstract class BaseGrpcServer extends BaseRpcServer {
                                 GrpcServerConstants.REQUEST_METHOD_NAME))
                 .setRequestMarshaller(ProtoUtils.marshaller(Payload.getDefaultInstance()))
                 .setResponseMarshaller(ProtoUtils.marshaller(Payload.getDefaultInstance())).build();
-        
+
+        // 给服务端添加监听grpcCommonRequestAcceptor payloadHandler就是处理器了
+        // 当rpc事件触发时，会调用grpcCommonRequestAcceptor.requestf方法
         final ServerCallHandler<Payload, Payload> payloadHandler = ServerCalls.asyncUnaryCall(
                 (request, responseObserver) -> grpcCommonRequestAcceptor.request(request, responseObserver));
-        
+
+        // ServerServiceDefinition
         final ServerServiceDefinition serviceDefOfUnaryPayload = ServerServiceDefinition.builder(
                 GrpcServerConstants.REQUEST_SERVICE_NAME).addMethod(unaryPayloadMethod, payloadHandler).build();
+        // 服务器单向处理器以及拦截器注册
         handlerRegistry.addService(ServerInterceptors.intercept(serviceDefOfUnaryPayload, serverInterceptor));
         
-        // bi stream register.
+        // 当双向流事件触发，会调用grpcBiStreamRequestAcceptor.requestBiStream
         final ServerCallHandler<Payload, Payload> biStreamHandler = ServerCalls.asyncBidiStreamingCall(
                 (responseObserver) -> grpcBiStreamRequestAcceptor.requestBiStream(responseObserver));
-        
+
         final MethodDescriptor<Payload, Payload> biStreamMethod = MethodDescriptor.<Payload, Payload>newBuilder()
                 .setType(MethodDescriptor.MethodType.BIDI_STREAMING).setFullMethodName(
                         MethodDescriptor.generateFullMethodName(GrpcServerConstants.REQUEST_BI_STREAM_SERVICE_NAME,
                                 GrpcServerConstants.REQUEST_BI_STREAM_METHOD_NAME))
                 .setRequestMarshaller(ProtoUtils.marshaller(Payload.newBuilder().build()))
                 .setResponseMarshaller(ProtoUtils.marshaller(Payload.getDefaultInstance())).build();
-        
+
         final ServerServiceDefinition serviceDefOfBiStream = ServerServiceDefinition.builder(
                 GrpcServerConstants.REQUEST_BI_STREAM_SERVICE_NAME).addMethod(biStreamMethod, biStreamHandler).build();
+
+        // 服务器多向处理器以及拦截器注册
         handlerRegistry.addService(ServerInterceptors.intercept(serviceDefOfBiStream, serverInterceptor));
         
     }

@@ -133,6 +133,7 @@ public class DefaultPublisher extends Thread implements EventPublisher {
     
     @Override
     public void addSubscriber(Subscriber subscriber) {
+        // 这里貌似用的也是同一个队列
         subscribers.add(subscriber);
     }
     

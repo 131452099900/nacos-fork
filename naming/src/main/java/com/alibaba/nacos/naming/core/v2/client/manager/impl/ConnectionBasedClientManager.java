@@ -47,7 +47,8 @@ import java.util.concurrent.TimeUnit;
  */
 @Component("connectionBasedClientManager")
 public class ConnectionBasedClientManager extends ClientConnectionEventListener implements ClientManager {
-    
+
+    // 维护clientId和clientConnection的关系
     private final ConcurrentMap<String, ConnectionBasedClient> clients = new ConcurrentHashMap<>();
     
     public ConnectionBasedClientManager() {

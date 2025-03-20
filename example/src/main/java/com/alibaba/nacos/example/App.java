@@ -35,6 +35,7 @@ public class App {
         properties.setProperty("namespace", "quickStart");
         NamingService naming = NamingFactory.createNamingService(properties);
 
+        // serviceName ip port clusterName
         naming.registerInstance("nacos.test.3", "11.11.11.11", 8888, "TEST1");
         System.out.println("[Instances after register]  " + naming.getAllInstances("nacos.test.3", Lists.newArrayList("TEST1")));
 

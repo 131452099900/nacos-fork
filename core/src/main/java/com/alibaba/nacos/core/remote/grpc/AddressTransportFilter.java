@@ -53,6 +53,7 @@ public class AddressTransportFilter extends ServerTransportFilter {
         int remotePort = remoteAddress.getPort();
         int localPort = localAddress.getPort();
         String remoteIp = remoteAddress.getAddress().getHostAddress();
+        // 在filter进行setAttributes connectionId，ip，port，后续方便在拦截器中进行context设置
         Attributes attrWrapper = transportAttrs.toBuilder()
                 .set(ATTR_TRANS_KEY_CONN_ID, System.currentTimeMillis() + "_" + remoteIp + "_" + remotePort)
                 .set(ATTR_TRANS_KEY_REMOTE_IP, remoteIp).set(ATTR_TRANS_KEY_REMOTE_PORT, remotePort)

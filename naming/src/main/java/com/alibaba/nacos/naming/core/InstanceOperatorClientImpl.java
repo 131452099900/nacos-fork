@@ -104,7 +104,9 @@ public class InstanceOperatorClientImpl implements InstanceOperator {
         
         boolean ephemeral = instance.isEphemeral();
         String clientId = IpPortBasedClient.getClientId(instance.toInetAddr(), ephemeral);
+        // 初始化Client，当如果client为null，需要初始化
         createIpPortClientIfAbsent(clientId);
+        // 这里是初始化service
         Service service = getService(namespaceId, serviceName, ephemeral);
         clientOperationService.registerInstance(service, instance, clientId);
     }
@@ -335,6 +337,7 @@ public class InstanceOperatorClientImpl implements InstanceOperator {
             } else {
                 clientAttributes = new ClientAttributes();
             }
+            // 如果没有这个client调用clientConnected把clients的computeIfAbsent方法把client设置进去
             clientManager.clientConnected(clientId, clientAttributes);
         }
     }

@@ -50,7 +50,9 @@ public class PushExecutorRpcImpl implements PushExecutor {
     public void doPushWithCallback(String clientId, Subscriber subscriber, PushDataWrapper data,
             NamingPushCallback callBack) {
         ServiceInfo actualServiceInfo = getServiceInfo(data, subscriber);
+        // 这是设置serviceInfo?
         callBack.setActualServiceInfo(actualServiceInfo);
+        // 这里是使用pushService进行推送的了
         pushService.pushWithCallback(clientId, NotifySubscriberRequest.buildNotifySubscriberRequest(actualServiceInfo),
                 callBack, GlobalExecutor.getCallbackExecutor());
     }

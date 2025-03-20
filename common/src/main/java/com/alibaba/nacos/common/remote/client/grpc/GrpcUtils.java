@@ -116,11 +116,14 @@ public class GrpcUtils {
      * @return payload
      */
     public static Object parse(Payload payload) {
+        // 两部分 metadata和body，其中body序列化成二进制
         Class classType = PayloadRegistry.getClassByType(payload.getMetadata().getType());
         if (classType != null) {
+            // json字符串二进制
             ByteString byteString = payload.getBody().getValue();
             ByteBuffer byteBuffer = byteString.asReadOnlyByteBuffer();
-            // 把二进制转化为字符串json
+
+            // 把json二进制转化为request
             Object obj = JacksonUtils.toObj(new ByteBufferBackedInputStream(byteBuffer), classType);
             if (obj instanceof Request) {
                 ((Request) obj).putAllHeader(payload.getMetadata().getHeadersMap());

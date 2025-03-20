@@ -99,8 +99,13 @@ public class PushDelayTaskExecuteEngine extends NacosDelayTaskExecuteEngine {
         
         @Override
         public boolean process(NacosTask task) {
+            // 先转为延迟推送任务
             PushDelayTask pushDelayTask = (PushDelayTask) task;
+            // 服务
             Service service = pushDelayTask.getService();
+            // 执行 这里好像是装饰，通过推迟任务PushDelayTask -> PushExecuteTask
+            // 后续到了com.alibaba.nacos.common.task.engine.TaskExecuteWorker.process
+            // 其实就是把这个PushExecuteTask放入队列中然后执行
             NamingExecuteTaskDispatcher.getInstance()
                     .dispatchAndExecuteTask(service, new PushExecuteTask(service, executeEngine, pushDelayTask));
             return true;

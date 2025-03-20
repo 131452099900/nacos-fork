@@ -106,6 +106,7 @@ public class NamingSubscriberServiceV2Impl extends SmartSubscriber implements Na
     @Override
     public List<Class<? extends Event>> subscribeTypes() {
         List<Class<? extends Event>> result = new LinkedList<>();
+        // 两种事件 serviceChangeEvent需要广播给集群
         result.add(ServiceEvent.ServiceChangedEvent.class);
         result.add(ServiceEvent.ServiceSubscribedEvent.class);
         return result;
@@ -114,13 +115,20 @@ public class NamingSubscriberServiceV2Impl extends SmartSubscriber implements Na
     @Override
     public void onEvent(Event event) {
         if (event instanceof ServiceEvent.ServiceChangedEvent) {
-            // If service changed, push to all subscribers.
+            // 如果service发生改变了，则推送给他所有的订阅者
+            // 集群服务变更事件
             ServiceEvent.ServiceChangedEvent serviceChangedEvent = (ServiceEvent.ServiceChangedEvent) event;
             Service service = serviceChangedEvent.getService();
+            // 延遲推送
+            // com.alibaba.nacos.common.task.engine.NacosDelayTaskExecuteEngine.tasks
+            // protected final ConcurrentHashMap<Object, AbstractDelayTask> tasks;
             delayTaskEngine.addTask(service, new PushDelayTask(service, PushConfig.getInstance().getPushTaskDelay()));
+
+            // Metrics指标
             MetricsMonitor.incrementServiceChangeCount(service);
         } else if (event instanceof ServiceEvent.ServiceSubscribedEvent) {
             // If service is subscribed by one client, only push this client.
+            // 只推送给这个服务的事件
             ServiceEvent.ServiceSubscribedEvent subscribedEvent = (ServiceEvent.ServiceSubscribedEvent) event;
             Service service = subscribedEvent.getService();
             delayTaskEngine.addTask(service, new PushDelayTask(service, PushConfig.getInstance().getPushTaskDelay(),

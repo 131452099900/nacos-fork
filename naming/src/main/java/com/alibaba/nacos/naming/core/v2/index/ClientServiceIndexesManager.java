@@ -44,7 +44,10 @@ import java.util.concurrent.ConcurrentMap;
  */
 @Component
 public class ClientServiceIndexesManager extends SmartSubscriber {
-    
+
+    /*
+     * publisherIndexes: server对应的所有clientId
+     */
     private final ConcurrentMap<Service, Set<String>> publisherIndexes = new ConcurrentHashMap<>();
     
     private final ConcurrentMap<Service, Set<String>> subscriberIndexes = new ConcurrentHashMap<>();
@@ -79,10 +82,15 @@ public class ClientServiceIndexesManager extends SmartSubscriber {
     @Override
     public List<Class<? extends Event>> subscribeTypes() {
         List<Class<? extends Event>> result = new LinkedList<>();
+        // 注册事件
         result.add(ClientOperationEvent.ClientRegisterServiceEvent.class);
+        // 取消注册事件
         result.add(ClientOperationEvent.ClientDeregisterServiceEvent.class);
+        // 订阅事件
         result.add(ClientOperationEvent.ClientSubscribeServiceEvent.class);
+        // 取消订阅事件
         result.add(ClientOperationEvent.ClientUnsubscribeServiceEvent.class);
+        // 断开连接事件
         result.add(ClientOperationEvent.ClientReleaseEvent.class);
         return result;
     }
@@ -90,8 +98,10 @@ public class ClientServiceIndexesManager extends SmartSubscriber {
     @Override
     public void onEvent(Event event) {
         if (event instanceof ClientOperationEvent.ClientReleaseEvent) {
+            // 如果是发布事件
             handleClientDisconnect((ClientOperationEvent.ClientReleaseEvent) event);
         } else if (event instanceof ClientOperationEvent) {
+            // 操作事件
             handleClientOperation((ClientOperationEvent) event);
         }
     }
@@ -117,7 +127,7 @@ public class ClientServiceIndexesManager extends SmartSubscriber {
         Service service = event.getService();
         String clientId = event.getClientId();
         if (event instanceof ClientOperationEvent.ClientRegisterServiceEvent) {
-            // 注册事件
+            // 注册事件 维护index，也就是service-client的索引
             addPublisherIndexes(service, clientId);
         } else if (event instanceof ClientOperationEvent.ClientDeregisterServiceEvent) {
             // 删除
@@ -132,8 +142,9 @@ public class ClientServiceIndexesManager extends SmartSubscriber {
     }
     
     private void addPublisherIndexes(Service service, String clientId) {
+        // 添加service-client关系的维护
         publisherIndexes.computeIfAbsent(service, key -> new ConcurrentHashSet<>()).add(clientId);
-        // 又广播service的changer事件
+        // 广播ServiceChangedEvent事件，主要就是 1）发送给所有的订阅者  2）广播nacos集群
         NotifyCenter.publishEvent(new ServiceEvent.ServiceChangedEvent(service, true));
     }
     
